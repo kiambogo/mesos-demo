@@ -1,0 +1,62 @@
+version: '2'
+
+services:
+  zookeeper:
+    image: garland/zookeeper
+    ports:
+      - "2181:2181"
+      - "2888:2888"
+      - "3888:3888"
+  mesos-master:
+    image: mesosphere/mesos-master:0.28.1
+    links:
+      - zookeeper:zk
+    ports:
+      - "5050:5050"
+    environment:
+     - MESOS_ZK=zk://zk:2181/mesos
+     - MESOS_LOG_DIR=/var/log/mesos
+     - MESOS_QUORUM=1
+     - MESOS_REGISTRY=in_memory
+     - MESOS_WORK_DIR=/var/lib/mesos
+  mesos-slaves:
+    image: kiambogo/dind
+    hostname: slave1
+    privileged: true
+    ports:
+      - "5051:5051"
+    expose:
+      - "30000-30020"
+    links:
+      - zookeeper:zk
+    volumes:
+      - /var/run/docker.sock:/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+      - /sys:/sys
+    environment:
+      - MESOS_MASTER=zk://zk:2181/mesos
+      - MESOS_CONTAINERIZERS=docker
+      - MESOS_RESOURCES= ports(*):[30000-30020];mem(*):5000;cpus(*):2
+  marathon:
+    image: mesosphere/marathon
+    links:
+      - zookeeper:zk
+      - mesos-slaves:slave1
+    ports:
+      - "8080:8080"
+    environment:
+      - MARATHON_EVENT_SUBSCRIBER=http_callback
+      - MARATHON_HTTP_ENDPOINTS=http://bamboo:8000/api/marathon/event_callback
+    command: --master zk://zk:2181/mesos --zk zk://zk:2181/marathon
+  bamboo:
+    image: kiambogo/bamboo
+    links:
+      - zookeeper:zk
+    ports:
+      - "8000:8000"
+      - "80:80"
+    volumes:
+      - ./bamboo/hosts:/etc/hosts
+    environment:
+      - BAMBOO_ZK_HOST=slave1:2181
+      - MARATHON_ENDPOINT=http://slave1:8080

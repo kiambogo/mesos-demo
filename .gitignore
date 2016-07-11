@@ -1,0 +1,5 @@
+webapp/.ensime
+webapp/.ensime_cache
+webapp/project/target
+webapp/project/docker
+webapp/target

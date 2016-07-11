@@ -1,0 +1,35 @@
+{
+    "id": "demo",
+    "cpus": 0.1,
+    "mem": 500,
+    "instances": 1,
+    "cmd": "bin/demo",
+    "container": {
+        "type": "DOCKER",
+        "docker": {
+            "image": "kiambogo/demo:1.0",
+            "network": "BRIDGE",
+            "portMappings": [
+                {
+                    "containerPort": 9000,
+                    "hostPort": 0,
+                    "servicePort": 0,
+                    "protocol": "tcp"
+                }
+            ]
+        }
+    },
+    "healthChecks": [
+        {
+            "protocol": "COMMAND",
+            "command": { "value": "curl -f -X GET http://172.19.0.1:$PORT0/" },
+            "gracePeriodSeconds": 3,
+            "intervalSeconds": 10,
+            "timeoutSeconds": 10,
+            "maxConsecutiveFailures": 5
+        }],
+    "upgradeStrategy": {
+        "minimumHealthCapacity": 1,
+        "maximumOverCapacity": 1
+    }
+}
